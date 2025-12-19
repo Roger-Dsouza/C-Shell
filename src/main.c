@@ -7,8 +7,9 @@ int main(int argc, char *argv[]) {
 
   // TODO: Uncomment the code below to pass the first stage
   printf("$ ");
-  char a=scanf();
-  printf("%s: command not found",a);
+  char command[100];
+  scanf("%s",command);
+  printf("%s: command not found",command);
 
   return 0;
 }
