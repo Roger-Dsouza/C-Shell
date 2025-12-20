@@ -26,7 +26,7 @@ int main(int argc, char *argv[]) {
 
 }
    text[strlen(command)]='\0';
-   printf("%s\n",command);
+   printf("%s\n",text);
 
 
   }
