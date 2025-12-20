@@ -21,7 +21,12 @@ int main(int argc, char *argv[]) {
   char text[strlen(command)];
 
   if (strcmp(four_word,"echo")==0){
-   printf("Echo recieved\n");
+   for (int i=4;i<strlen(command);i++){
+	text[(i-4)]=command[i];
+
+}
+   text[strlen(command)]='\0';
+   printf("%s\n",command);
 
 
   }
