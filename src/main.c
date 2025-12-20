@@ -5,6 +5,7 @@
 int main(int argc, char *argv[]) {
   setbuf(stdout, NULL);
   while (1==1){
+   setbuf(stdin,NULL);
    printf("$ ");
    char command[100];
    scanf("%[^\t\n]",command);  
@@ -25,7 +26,7 @@ int main(int argc, char *argv[]) {
    printf("%s\n",text);
 
   }else if(strcmp("exit",command)==0){
-   break;
+  break;
   }else{
   printf("%s: command not found\n",command);
   }
