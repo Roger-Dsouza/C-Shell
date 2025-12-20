@@ -3,8 +3,9 @@
 #include <string.h>
 
 int main(int argc, char *argv[]) {
-  setbuf(stdout, NULL);
+  
   while (1==1){
+   setbuf(stdout, NULL);
    setbuf(stdin,NULL);
    printf("$ ");
    char command[100];
@@ -22,7 +23,7 @@ int main(int argc, char *argv[]) {
    for (int i=0;i<strlen(command);i++){
      text[i-5]=command[i];
    }
-   text[strlen(command)]='\0';
+   text[strlen(command)-5]='\0';
    printf("%s\n",text);
 
   }else if(strcmp("exit",command)==0){
