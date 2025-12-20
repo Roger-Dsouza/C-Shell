@@ -1,9 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 
 int main(int argc, char *argv[]) {
-  
+  char *builtin[3]={"echo","exit","type"};
   while (1==1){
    setbuf(stdout, NULL);
    setbuf(stdin,NULL);
@@ -28,6 +29,19 @@ int main(int argc, char *argv[]) {
 
   }else if(strcmp("exit",command)==0){
   break;
+
+  }else if (strcmp("type",four_word)==0){
+   for (int i=5;i<strlen(command);i++){
+     text[i-5]=command[i];
+   }
+   text[strlen(command)-5]='\0';
+   bool isType=false;
+   for (int a=0;a<3;a++){
+    if (strcmp(text,builtin[a])==0) isType=true;
+   }
+
+   if (isType==true) printf("%s is a shell builtin\n",text);
+   else printf("%s: not found\n",text);
   }else{
   printf("%s: command not found\n",command);
   }
