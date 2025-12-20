@@ -3,39 +3,34 @@
 #include <string.h>
 
 int main(int argc, char *argv[]) {
-  // Flush after every printf
   setbuf(stdout, NULL);
   while (1==1){
-  // TODO: Uncomment the code below to pass the first stage
-  printf("$ ");
-  char command[100];
-  scanf("%s",command);
-  int a=strlen(command);
-   
+   printf("$ ");
+   char command[100];
+   scanf("%[^\t\n]",command);  
 
-  char four_word[5];
-  for (int i=0;i<4;i++){
+   char four_word[5];
+   for (int i=0;i<4;i++){
    four_word[i]=command[i];
-  }
+   }
+   four_word[4]='\0';
   
-  char text[strlen(command)];
+   char text[strlen(command)];
 
-  if (strcmp(four_word,"echo")==0){
-   for (int i=4;i<strlen(command);i++){
-	text[(i-4)]=command[i];
-
-}
+   if (strcmp(four_word,"echo")==0){
+   for (int i=0;i<strlen(command);i++){
+     text[i-5]=command[i];
+   }
    text[strlen(command)]='\0';
    printf("%s\n",text);
 
-
-  }
-
-
-  if (strcmp("exit",command)==0){
+  }else if(strcmp("exit",command)==0){
    break;
-  }
+  }else{
   printf("%s: command not found\n",command);
   }
-  return 0;
+  
+}
+return 0;
+
 }
