@@ -18,11 +18,10 @@ int main(int argc, char *argv[]) {
    four_word[i]=command[i];
   }
   
+  char text[strlen(command)];
+
   if (strcmp(four_word,"echo")==0){
-   for (int i=5;i<strlen(command);i++){
-    printf("%c",command[i]);
-   } 
-   printf("\n");
+   printf("Echo recieved\n");
 
 
   }
