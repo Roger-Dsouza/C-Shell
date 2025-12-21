@@ -68,7 +68,6 @@ int main(int argc, char *argv[]) {
            }else{
              while ((entry=readdir(directory))!=NULL){
             if (strcmp(entry->d_name,text)==0){
-              printf("%s\n",buffer);
               printf("%s is %s/%s\n",text,buffer,entry->d_name);
               inDir=true;
              
