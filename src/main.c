@@ -68,8 +68,16 @@ int main(int argc, char *argv[]) {
            }else{
              while ((entry=readdir(directory))!=NULL){
             if (strcmp(entry->d_name,text)==0){
+              char myPath[100];
+              sprintf(myPath,"%s/%s",buffer,entry->d_name);
+              if (access(myPath,X_OK)==0){
               printf("%s is %s/%s\n",text,buffer,entry->d_name);
               inDir=true;
+              }
+
+
+              
+
              
             }
 
@@ -87,6 +95,23 @@ int main(int argc, char *argv[]) {
           
       }
       if (inDir==false) printf("%s: not found\n",text);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
       } 
 
