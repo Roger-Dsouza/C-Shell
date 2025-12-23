@@ -61,7 +61,7 @@ void append(list *l,char *word){
 
 
 int main(int argc, char *argv[]) {
-  char *builtin[4]={"echo","exit","type","pwd"};
+  char *builtin[5]={"echo","exit","type","pwd","cd"};
   while (1==1){
    setbuf(stdout, NULL);
    setbuf(stdin,NULL);
@@ -71,6 +71,15 @@ int main(int argc, char *argv[]) {
 
 
    char four_word[5];
+   char two_word[3];
+
+  for (int i=0;i<2;i++){
+   two_word[i]=command[i];
+   }
+   four_word[4]='\0';
+   two_word[2]='\0';
+
+   
    for (int i=0;i<4;i++){
    four_word[i]=command[i];
    }
@@ -78,9 +87,14 @@ int main(int argc, char *argv[]) {
   
    char text[strlen(command)];
    
-
-
-   if (strcmp(four_word,"echo")==0 && command[4]==' '){     //Print command.
+   if (strcmp(two_word,"cd")==0){
+    for (int i=3;i<strlen(command);i++){
+     text[i-3]=command[i];
+   }
+   text[strlen(command)-3]='\0';   
+   if (chdir(text)!=0) printf("cd: %s: No such file or directory\n",text);
+   }else{
+    if (strcmp(four_word,"echo")==0 && command[4]==' '){     //Print command.
    for (int i=5;i<strlen(command);i++){
      text[i-5]=command[i];
    }
@@ -101,7 +115,7 @@ int main(int argc, char *argv[]) {
    }
    text[strlen(command)-5]='\0';
    bool isType=false;
-   for (int a=0;a<4;a++){
+   for (int a=0;a<5;a++){
     if (strcmp(text,builtin[a])==0) isType=true;
    }
 
@@ -247,7 +261,10 @@ int main(int argc, char *argv[]) {
       pos+=1;
           
       }
-      if (isCommand==false) printf("%s: command not found\n",wordList->array[0]);
+      if (isCommand==false){
+        printf("%s: command not found\n",wordList->array[0]);
+
+      } 
 
 
       }
@@ -262,6 +279,8 @@ int main(int argc, char *argv[]) {
 
 
       }      
+   }
+
    }
     return 0; 
   }
