@@ -91,8 +91,16 @@ int main(int argc, char *argv[]) {
     for (int i=3;i<strlen(command);i++){
      text[i-3]=command[i];
    }
-   text[strlen(command)-3]='\0';   
-   if (chdir(text)!=0) printf("cd: %s: No such file or directory\n",text);
+   const char *home=getenv("HOME");
+   text[strlen(command)-3]='\0'; 
+   if (strcmp(text,"~")==0){
+    if (chdir(home)!=0) printf("Unexpected error.\n");
+   }else{  
+   }  
+   if (chdir(text)!=0){
+     if (strcmp("~",text)!=0) printf("cd: %s: No such file or directory\n",text);
+
+   } 
    }else{
     if (strcmp(four_word,"echo")==0 && command[4]==' '){     //Print command.
    for (int i=5;i<strlen(command);i++){
