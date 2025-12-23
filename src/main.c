@@ -61,7 +61,7 @@ void append(list *l,char *word){
 
 
 int main(int argc, char *argv[]) {
-  char *builtin[3]={"echo","exit","type"};
+  char *builtin[4]={"echo","exit","type","pwd"};
   while (1==1){
    setbuf(stdout, NULL);
    setbuf(stdin,NULL);
@@ -90,14 +90,18 @@ int main(int argc, char *argv[]) {
 
   }else if(strcmp("exit",command)==0){  //Leave shell command.
   break;
-
+  }else if (strcmp("pwd",command)==0){
+    char currentDir[1024];
+    char *buffer=currentDir;
+    buffer=getcwd(buffer,1024);
+    printf("%s\n",buffer);
   }else if (strcmp("type",four_word)==0){ //Identifier command.
    for (int i=5;i<strlen(command);i++){
      text[i-5]=command[i];
    }
    text[strlen(command)-5]='\0';
    bool isType=false;
-   for (int a=0;a<3;a++){
+   for (int a=0;a<4;a++){
     if (strcmp(text,builtin[a])==0) isType=true;
    }
 
