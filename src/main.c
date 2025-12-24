@@ -111,7 +111,11 @@ int main(int argc, char *argv[]) {
         text[pos]=command[i];
         pos++;
       }
-     }else if (command[i]=='\'') {
+     }else if (command[i]=='\\') {
+            i++;
+            text[pos]=command[i];
+            pos++;
+          }else if (command[i]=='\'') {
         //Two Cases- Either the next character is a quote or there is a list of chars till next quote.
         text[pos]='\0';
         printf("%s",text);
@@ -260,6 +264,11 @@ int main(int argc, char *argv[]) {
             }
             print=0;
             pos++;
+          }else if (command[pos]=='\\') {
+            pos++;
+            wordbuffer[print]=command[pos];
+            pos++;
+            print++;
           }else if (command[pos]=='\''){
             pos++; //Shift to the next position.
             while (command[pos]!='\''){
