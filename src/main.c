@@ -140,6 +140,7 @@ int main(int argc, char *argv[]) {
           pos=0;
         }
      }else if (command[i]=='"'){
+        int inSingle=0;
         //Two Cases- Either the next character is a double quote or there is a list of chars till next double quote.
         text[pos]='\0';
         printf("%s",text);
@@ -151,6 +152,15 @@ int main(int argc, char *argv[]) {
         } 
         else{
           while (command[i]!='"'){
+            if (command[i]=='\''){
+              if (inSingle==0) inSingle=1;
+              else inSingle=0;
+            }
+            if (command[i]=='\\') {
+             if (inSingle==0){
+             i++;
+             }
+             }
             text[pos]=command[i];
             pos++;
             i++;
@@ -249,6 +259,7 @@ int main(int argc, char *argv[]) {
    }
   }else{
         list *wordList=newList();
+        int inSingle=0;
         int pos=0;
         int print=0;
         char wordbuffer[100];
@@ -288,9 +299,20 @@ int main(int argc, char *argv[]) {
           }else if (command[pos]=='"') {
             pos++; //Shift to the next position.
             while (command[pos]!='"'){
-              wordbuffer[print]=command[pos];
+            if (command[pos]=='\''){
+              if (inSingle==0) inSingle=1;
+              else inSingle=0;
+            }
+
+            if (command[pos]=='\\') {
+             if (command[pos+1]=='"' || command[pos+1]=='\\'){
               pos++;
-              print++;
+             }
+             }
+            wordbuffer[print]=command[pos];
+            pos++;
+            print++;
+
             }
             wordbuffer[print]='\0';
 
