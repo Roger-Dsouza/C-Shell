@@ -16,7 +16,7 @@ typedef char letter;
 
 
 
-
+//List module.
 typedef struct list{
   int length;
   int capacity;
@@ -29,7 +29,6 @@ list *newList(){
   *l=(list){0,INITIAL_CAPACITY,array};
   return l;
 }
-
 void freeList(list *l){
   for (int a=0;a<l->length;a++){
     free(l->array[a]);
@@ -37,7 +36,6 @@ void freeList(list *l){
   free(l->array);
   free(l);
 }
-
 void expand(list *l){
   l->capacity=l->capacity*(100+GROWTH_RATE)/100;
   l->array=realloc(l->array,l->capacity*sizeof(char *));
@@ -54,7 +52,7 @@ void append(list *l,char *word){
   l->length+=1;
 
 }
-
+//***************************
 
 
 
@@ -137,6 +135,28 @@ int main(int argc, char *argv[]) {
           strcpy(text,"");
           pos=0;
         }
+     }else if (command[i]=='"'){
+        //Two Cases- Either the next character is a double quote or there is a list of chars till next double quote.
+        text[pos]='\0';
+        printf("%s",text);
+        strcpy(text,"");
+        i++;
+        pos=0;
+        if (command[i]=='"'){
+          printf("");
+        } 
+        else{
+          while (command[i]!='"'){
+            text[pos]=command[i];
+            pos++;
+            i++;
+          }
+          text[pos]='\0';
+          printf("%s",text);
+          strcpy(text,"");
+          pos=0;
+        }
+
      }else{
       text[pos]=command[i];
       pos++;
@@ -243,6 +263,22 @@ int main(int argc, char *argv[]) {
           }else if (command[pos]=='\''){
             pos++; //Shift to the next position.
             while (command[pos]!='\''){
+              wordbuffer[print]=command[pos];
+              pos++;
+              print++;
+            }
+            wordbuffer[print]='\0';
+
+            char *wordpointer=malloc(sizeof(wordbuffer));
+            if (strcmp(wordbuffer,"")!=0){
+                  strcpy(wordpointer,wordbuffer);
+                  append(wordList,wordpointer);
+            }
+            print=0;
+            pos++;
+          }else if (command[pos]=='"') {
+            pos++; //Shift to the next position.
+            while (command[pos]!='"'){
               wordbuffer[print]=command[pos];
               pos++;
               print++;
