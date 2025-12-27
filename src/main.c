@@ -1,3 +1,4 @@
+#define _POSIX_C_SOURCE 200809L
 #include <stdio.h>
 #include <sys/wait.h>
 #include <stdlib.h>
@@ -7,13 +8,54 @@
 #include <unistd.h>
 
 
-const int INITIAL_CAPACITY=8;
+const int INITIAL_CAPACITY=2048;
 const int GROWTH_RATE=50;
 const int FAILURE_CODE=1;
 //List Implementation.
 typedef char ** array; //List of char lists.
 typedef char letter;
 
+//Word module.
+typedef struct word{
+  int length;
+  int capacity;
+  char *letters;
+
+}word;
+
+word *newWord(){
+  word *w=malloc(sizeof(word));
+  char *letters=malloc(INITIAL_CAPACITY*sizeof(char));
+  letters[0]='\0';
+  *w=(word){0,INITIAL_CAPACITY,letters};
+  return w;
+}
+
+void freeWord(word *w){
+  free(w->letters);
+  free(w);
+}
+
+void wordexpand(word *w){
+  w->capacity=w->capacity*(100+GROWTH_RATE)/100;
+  w->letters=realloc(w->letters,w->capacity*sizeof(char *));
+}
+
+void wordread(word *w,char *insert){
+  if (w->capacity<=strlen(insert)) wordexpand(w);
+  strcpy(w->letters,insert);
+  w->capacity=strlen(insert);
+}
+
+void wordappend(word *w,char *append){
+  if ((w->length+strlen(append))>=(w->capacity)){
+   while ((w->length+strlen(append))>=w->capacity){
+         wordexpand(w);
+   }
+  }
+  strcat(w->letters,append);
+  w->length=w->length+strlen(append);
+}
 
 
 //List module.
@@ -22,7 +64,6 @@ typedef struct list{
   int capacity;
   array array; //Pointer to the list of strings.
 }list;
-
 list *newList(){
   list *l=malloc(sizeof(list));
   array array=malloc(INITIAL_CAPACITY*sizeof(l->array));
@@ -45,7 +86,6 @@ char *get(list *l,int i){
   return string;
 
 }
-
 void append(list *l,char *word){
   if ((l->length)>=l->capacity) expand(l);
   l->array[(l->length)]=word;
@@ -64,10 +104,10 @@ int main(int argc, char *argv[]) {
    setbuf(stdout, NULL);
    setbuf(stdin,NULL);
    printf("$ ");
+
    char command[100];
    scanf("%[^\t\n]",command);  //Input from shell.
-
-
+   int length=strlen(command);
    char four_word[5];
    char two_word[3];
 
@@ -102,6 +142,8 @@ int main(int argc, char *argv[]) {
    }else{
 
   if (strcmp(four_word,"echo")==0 && command[4]==' '){     //Print command.
+    FILE *temp=fopen("temp.txt","w");
+    bool toFile=false;
     list *wordList=newList();
     int pos=0;
     int i=5;
@@ -118,7 +160,7 @@ int main(int argc, char *argv[]) {
           }else if (command[i]=='\'') {
         //Two Cases- Either the next character is a quote or there is a list of chars till next quote.
         text[pos]='\0';
-        printf("%s",text);
+        fprintf(temp,"%s",text);
         strcpy(text,"");
         i++;
 
@@ -135,7 +177,7 @@ int main(int argc, char *argv[]) {
             i++;
           }
           text[pos]='\0';
-          printf("%s",text);
+          fprintf(temp,"%s",text);
           strcpy(text,"");
           pos=0;
         }
@@ -143,12 +185,13 @@ int main(int argc, char *argv[]) {
         int inSingle=0;
         //Two Cases- Either the next character is a double quote or there is a list of chars till next double quote.
         text[pos]='\0';
-        printf("%s",text);
+        fprintf(temp,"%s",text);
         strcpy(text,"");
         i++;
         pos=0;
         if (command[i]=='"'){
           printf("");
+          pos=0;
         } 
         else{
           while (command[i]!='"'){
@@ -166,22 +209,55 @@ int main(int argc, char *argv[]) {
             i++;
           }
           text[pos]='\0';
-          printf("%s",text);
+          fprintf(temp,"%s",text);
           strcpy(text,"");
           pos=0;
         }
 
+     }else if (command[i]=='>'|| (command[i]=='1' && command[i+1]=='>')){
+      toFile=true;
+      text[pos]='\0';
+      fprintf(temp,"%s",text); //Dumps last value.
+      
+      if (command[i]=='>') i++;
+      else i+=2;
+      while (command[i]==' '){ //Skips spaces.
+        i++;
+      }
+      pos=0;
+      while (i<strlen(command)){
+        text[pos]=command[i];
+        pos++;
+        i++;
+      }
+      text[pos]='\0';
+
+
      }else{
       text[pos]=command[i];
-      pos++;
+      pos++; 
      }
    i++;  
    }
    text[pos]='\0';
-   printf("%s\n",text);
-   freeList(wordList);
-   
+   if (toFile==false){
+   fprintf(temp,"%s\n",text);
+   }
+   fclose(temp);
+   FILE *tempWrite=fopen("temp.txt","r");
+   char line[200];
+   fgets(line,200,tempWrite);
 
+   if (toFile==1){
+      FILE *theFile=fopen(text,"w");
+      fprintf(theFile,"%s",line);
+      fgets(line,length,tempWrite);
+      fclose(theFile);
+   }else{
+        printf("%s",line);
+   }
+   fclose(tempWrite);
+   freeList(wordList);
 
   }else if(strcmp("exit",command)==0){  //Leave shell command.
   break;
@@ -253,8 +329,6 @@ int main(int argc, char *argv[]) {
           
       }
       if (isCommand==false) printf("%s: not found\n",text);
-
-
       }      
    }
   }else{
@@ -263,6 +337,8 @@ int main(int argc, char *argv[]) {
         int pos=0;
         int print=0;
         char wordbuffer[100];
+        bool toDirect=false;
+
         while (command[pos]!='\0'){ //Breaks the text into words and appends them into a list.
           if (command[pos]==' '){
             wordbuffer[print]='\0';
@@ -323,15 +399,38 @@ int main(int argc, char *argv[]) {
             }
             print=0;
             pos++;
-          }else{
+          }else if (command[pos]=='>' || (command[pos]=='1' && command[pos+1]=='>')){
+            toDirect=true;
+            if (command[pos]=='>') pos++;
+            else pos+=2;
+            print=0;
+            while (command[pos]!='\0'){
+              int embedded=0;
+              if (command[pos]==' '){
+                if (embedded==1) wordbuffer[print]=command[pos];
+                else pos++;
+              }
+              else if (command[pos]=='\'' || command[pos]=='"'){
+                if (embedded==1) embedded=0;
+                else embedded=1;
 
+              }else{
+              wordbuffer[print]=command[pos];
+              print++;
+              pos++;
+              }
+            }
+            command[pos]='\0'; //Finds the name of the file.
+
+
+          }else{
             wordbuffer[print]=command[pos];
             pos++;
             print++;
           }
 
         }
-        if (command[pos]=='\0' && print>0){
+        if (command[pos]=='\0' && print>0 && toDirect==false){
         wordbuffer[print]='\0';
         char *wordpointer=malloc(sizeof(wordbuffer));
         strcpy(wordpointer,wordbuffer);
@@ -339,43 +438,77 @@ int main(int argc, char *argv[]) {
         }
       bool isCommand=false;
       char buffer[100];
-      char *path=getenv("PATH");  //Gets the path specified.
+
+      char *path=getenv("PATH");  //Gets the path specified.      
       if (path==NULL){            //If no path is present.
         printf("%s: command not found\n",text);
       }else{
-      int a=0;
-      int pos=0;
-      while (path[a]!='\0' &&isCommand!=true){
-        buffer[pos]=path[a]; //Copies chars into string buffer.
-        if (path[a]==':'){
+       int a=0;
+       int pos=0;
+       while (a<=strlen(path) && isCommand==false){
+        if (path[a]==':' || path[a]=='\0'){
            buffer[pos]='\0'; //Directory path is created.
            a+=1;
            pos=0;
            DIR *directory;
            struct dirent *entry;
            directory=opendir(buffer);
+           
            if (directory==NULL){
-            printf("%s Directory not found.\n",text);
+            printf("%s Directory not found.\n",buffer);
            }else{
              while ((entry=readdir(directory))!=NULL){
               append(wordList,NULL);
-             if (strcmp(entry->d_name,wordList->array[0])==0){
+              if (strcmp(entry->d_name,wordList->array[0])==0){
+              isCommand=true;           
               char myPath[100];
+
               sprintf(myPath,"%s/%s",buffer,entry->d_name);
               if (access(myPath,X_OK)==0){
               //pid=Process id.
-              pid_t p=fork();
-              if (p<0) printf("Runtime error in OS system.\n");
-              else if (p==0){
+              int pipefd[2];
+              pipe(pipefd);
+              if (pipe(pipefd)<0){
+                printf("Piping error.");
+              }
+              word *bufferword=newWord();
+              
+
+              pid_t p=fork(); //Clones the process.
+              
+              if (p<0){
+                 close(pipefd[0]);
+                 close(pipefd[1]);
+                 printf("Runtime error in OS system.\n");
+              } 
+              else if (p==0){  //Child process.
+                close(pipefd[0]);
+                dup2(pipefd[1],STDOUT_FILENO); //Connects pipefd[1] to stdout.
+                close(pipefd[1]);
                 execv(myPath,wordList->array);
-                exit(1);
-              }else{
+
+
+              }else{ //Parent process.
+                close(pipefd[1]);
+                word *w=newWord();
                 waitpid(p,NULL,0);
-                isCommand=true;
-              }
+                read(pipefd[0],buffer,sizeof(buffer)-1);
+                wordread(w,buffer);
+                while (read(pipefd[0],buffer,sizeof(buffer)-1)!=0){
+                  wordappend(w,buffer);
+                }
+                close(pipefd[0]);
+                if (toDirect==false) printf("%s",w->letters);
+                else{
+                  FILE *final=fopen(wordbuffer,"w");
+                  fprintf(final,"%s",w->letters);
+                  fclose(final);
+                }
+                freeWord(w);
 
               }
-
+              freeWord(bufferword);
+              }
             }
 
            }
@@ -386,28 +519,17 @@ int main(int argc, char *argv[]) {
            }
 
         } 
-      }
+      }else{
+        buffer[pos]=path[a];
+      } 
       a+=1;
       pos+=1;
-          
       }
       if (isCommand==false){
         printf("%s: command not found\n",wordList->array[0]);
-
       } 
-
-
       }
-
-
-
-
-        free(wordList);
-        
-      
-
-
-
+        freeList(wordList);
       }      
    }
 
