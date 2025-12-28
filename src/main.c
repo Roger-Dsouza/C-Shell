@@ -44,7 +44,7 @@ void wordexpand(word *w){
 void wordread(word *w,char *insert){
   if (w->capacity<=strlen(insert)) wordexpand(w);
   strcpy(w->letters,insert);
-  w->capacity=strlen(insert);
+  w->length=strlen(insert);
 }
 
 void wordappend(word *w,char *append){
@@ -400,6 +400,12 @@ int main(int argc, char *argv[]) {
             print=0;
             pos++;
           }else if (command[pos]=='>' || (command[pos]=='1' && command[pos+1]=='>')){
+            if (command[pos-1]!=' '){
+              wordbuffer[print]='\0';
+              char *wordpointer=malloc(sizeof(wordbuffer));
+              strcpy(wordpointer,wordbuffer);
+              append(wordList,wordpointer);
+            }
             toDirect=true;
             if (command[pos]=='>') pos++;
             else pos+=2;
@@ -411,8 +417,13 @@ int main(int argc, char *argv[]) {
                 else pos++;
               }
               else if (command[pos]=='\'' || command[pos]=='"'){
-                if (embedded==1) embedded=0;
+                if (embedded==1){
+                     wordbuffer[print]=command[pos];
+
+                    embedded=0;
+                } 
                 else embedded=1;
+
 
               }else{
               wordbuffer[print]=command[pos];
@@ -430,11 +441,13 @@ int main(int argc, char *argv[]) {
           }
 
         }
-        if (command[pos]=='\0' && print>0 && toDirect==false){
-        wordbuffer[print]='\0';
-        char *wordpointer=malloc(sizeof(wordbuffer));
-        strcpy(wordpointer,wordbuffer);
-        append(wordList,wordpointer);
+        if (command[pos]=='\0' && print>0){
+         wordbuffer[print]='\0';
+         char *wordpointer=malloc(sizeof(wordbuffer));
+         strcpy(wordpointer,wordbuffer);
+         if (toDirect==false){
+         append(wordList,wordpointer);
+         }
         }
       bool isCommand=false;
       char buffer[100];
@@ -467,41 +480,58 @@ int main(int argc, char *argv[]) {
               if (access(myPath,X_OK)==0){
               //pid=Process id.
               int pipefd[2];
-              pipe(pipefd);
               if (pipe(pipefd)<0){
                 printf("Piping error.");
               }
               word *bufferword=newWord();
               
-
+              strcpy(buffer,"");
               pid_t p=fork(); //Clones the process.
-              
               if (p<0){
                  close(pipefd[0]);
                  close(pipefd[1]);
                  printf("Runtime error in OS system.\n");
               } 
               else if (p==0){  //Child process.
+                
                 close(pipefd[0]);
-                dup2(pipefd[1],STDOUT_FILENO); //Connects pipefd[1] to stdout.
-                close(pipefd[1]);
-                execv(myPath,wordList->array);
 
+                dup2(pipefd[1],STDOUT_FILENO); //Connects pipefd[1] to stdout.
+                
+                close(pipefd[1]);
+
+                execv(myPath,wordList->array);
+                perror("Program executable is broken.\n");
+                exit(67);
 
               }else{ //Parent process.
-                close(pipefd[1]);
+                
+                close(pipefd[1]);    //Doesn't need to write input.
                 word *w=newWord();
                 waitpid(p,NULL,0);
-                read(pipefd[0],buffer,sizeof(buffer)-1);
+                ssize_t n=read(pipefd[0],buffer,sizeof(buffer)-1);
+                buffer[n]='\0';
                 wordread(w,buffer);
-                while (read(pipefd[0],buffer,sizeof(buffer)-1)!=0){
+                n=read(pipefd[0],buffer,sizeof(buffer)-1);
+                while (n!=0){ 
+                  buffer[n]='\0';
                   wordappend(w,buffer);
+                  n=read(pipefd[0],buffer,sizeof(buffer)-1);
                 }
                 close(pipefd[0]);
-                if (toDirect==false) printf("%s",w->letters);
+                
+                if (toDirect==false){
+                  if (w->letters[w->length-1]=='\n'){
+                    printf("%s",w->letters);
+                  }else {
+                    printf("%s",w->letters);
+                    printf("\n");
+                  } 
+
+                } 
                 else{
                   FILE *final=fopen(wordbuffer,"w");
-                  fprintf(final,"%s",w->letters);
+                  fprintf(final,"%s",w->letters); 
                   fclose(final);
                 }
                 freeWord(w);
