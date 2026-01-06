@@ -142,7 +142,7 @@ int main(int argc, char *argv[]) {
     }else{  
     }  
     if (chdir(text)!=0){
-     if (strcmp("~",text)!=0) printf("cd: %s: No such file or directory\n",text);
+     if (strcmp("~",text)!=0) fprintf(stderr,"cd: %s: No such file or directory\n",text);
 
     } 
     strcpy(text,"");
@@ -335,7 +335,7 @@ int main(int argc, char *argv[]) {
         FILE *errornote=fopen(text,"w");
         while (!feof(errorlog)){
             fgets(line,length,errorlog); 
-            fprintf(errornote,"%s",line);  
+            fprintf(errornote,"%s",line);
         }
         fclose(errorlog);
         fclose(errornote);
@@ -359,7 +359,7 @@ int main(int argc, char *argv[]) {
    
 
   }else if(strcmp("exit",command)==0){  //Leave shell command.
-  break;
+    break;
   }else if (strcmp("pwd",command)==0){
     char currentDir[1024];
     char *buffer=currentDir;
@@ -397,7 +397,7 @@ int main(int argc, char *argv[]) {
 
            directory=opendir(buffer);
            if (directory==NULL){
-            printf("%s Directory not found.\n",text);
+            fprintf(stderr,"%s Directory not found.\n",text);
            }else{
              while ((entry=readdir(directory))!=NULL){
             if (strcmp(entry->d_name,text)==0){
@@ -427,11 +427,10 @@ int main(int argc, char *argv[]) {
        pos+=1;
           
       }
-      if (isCommand==false) printf("%s: not found\n",text);
+      if (isCommand==false) printf("not found:%s\n",text);
       }      
    }
   }else{
-        
         list *wordList=newList();
         int inSingle=0;
         int pos=0;
@@ -629,7 +628,7 @@ int main(int argc, char *argv[]) {
 
       char *path=getenv("PATH");  //Gets the path specified.      
       if (path==NULL){            //If no path is present.
-        printf("%s: command not found\n",text);
+        fprintf(stderr,"command not found:%s\n",text);
       }else{
        int a=0;
        int pos=0;
@@ -643,7 +642,7 @@ int main(int argc, char *argv[]) {
            directory=opendir(buffer);
            
            if (directory==NULL){
-            fprintf(stderr,"%s Directory not found.\n",buffer);
+            fprintf(stderr,"Directory not found:%s\n",buffer);
            }else{
              while ((entry=readdir(directory))!=NULL){
               append(wordList,NULL);
@@ -657,10 +656,7 @@ int main(int argc, char *argv[]) {
                if (pipe(pipefd)<0){
                 fprintf(stderr,"Piping error.");
                }
-               word *bufferword=newWord();
-               int remberr=dup(STDERR_FILENO);
-               int rembout=dup(STDOUT_FILENO);
-              
+               word *bufferword=newWord();              
                strcpy(buffer,"");
 
                pid_t p=fork(); //Clones the process.
@@ -668,8 +664,7 @@ int main(int argc, char *argv[]) {
                  close(pipefd[0]);
                  close(pipefd[1]);
                  fprintf(stderr,"Runtime error in OS system.\n");
-               } 
-               else if (p==0){  //Child process.
+               } else if (p==0){  //Child process.
                 close(pipefd[0]); 
                 if (errorDirect==true){
                     dup2(pipefd[1],STDERR_FILENO); 
@@ -683,8 +678,6 @@ int main(int argc, char *argv[]) {
               }else{ //Parent process.
                 close(pipefd[1]);    //Doesn't need to write input.
                 word *w=newWord();
-                dup2(remberr,STDERR_FILENO);
-                dup2(rembout,STDOUT_FILENO);
                 waitpid(p,NULL,0);
                 ssize_t n=read(pipefd[0],buffer,sizeof(buffer)-1);
                 buffer[n]='\0';
@@ -696,6 +689,7 @@ int main(int argc, char *argv[]) {
                   n=read(pipefd[0],buffer,sizeof(buffer)-1);
                 }
                 close(pipefd[0]);
+
 
                 
                 if (toDirect==false  && errorDirect==false){
