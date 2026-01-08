@@ -1,4 +1,3 @@
-#define _POSIX_C_SOURCE 200809L
 #include <stdio.h>
 #include <sys/wait.h>
 #include <stdlib.h>
@@ -8,12 +7,12 @@
 #include <unistd.h>
 
 //Program Specific Instructions.
-const int INITIAL_CAPACITY=2048;
+const int INITIAL_CAPACITY=200;
 const int GROWTH_RATE=50;
 const int FAILURE_CODE=1;
 //***************************** */
 //List Implementation.
-typedef char ** array; //List of char lists.
+typedef char **array; //List of char lists.
 typedef char letter;
 
 //Word module.
@@ -39,7 +38,7 @@ void freeWord(word *w){
 
 void wordexpand(word *w){
   w->capacity=w->capacity*(100+GROWTH_RATE)/100;
-  w->letters=realloc(w->letters,w->capacity*sizeof(char *));
+  w->letters=realloc(w->letters,w->capacity*sizeof(char)+1);
 }
 
 void wordread(word *w,char *insert){
@@ -49,7 +48,7 @@ void wordread(word *w,char *insert){
 }
 
 void wordappend(word *w,char *append){
-  if ((w->length+strlen(append))>=(w->capacity)){
+  if ((w->length+strlen(append)+1)>=(w->capacity)){
    while ((w->length+strlen(append))>=w->capacity){
          wordexpand(w);
    }
@@ -142,7 +141,7 @@ int main(int argc, char *argv[]) {
     }else{  
     }  
     if (chdir(text)!=0){
-     if (strcmp("~",text)!=0) fprintf(stderr,"cd: %s: No such file or directory\n",text);
+     if (strcmp("~",text)!=0) printf("cd: %s: No such file or directory\n",text);
 
     } 
     strcpy(text,"");
@@ -267,6 +266,7 @@ int main(int argc, char *argv[]) {
       }
      }else if (command[i]=='2' && command[i+1]=='>') {
         freopen("error.txt","w",stderr);
+        setvbuf(stderr,NULL,_IONBF,0);
         errorDirect=true;
         text[pos]='\0';
         fprintf(temp,"%s",text); //Dumps last value.
@@ -274,10 +274,10 @@ int main(int argc, char *argv[]) {
         i+=2;
         pos=0;
 
-      while (i<strlen(command)){
-        int embedded=0;
-        char prev=0;
-        if (command[i]=='\'' || command[i]=='"'){
+        while (i<strlen(command)){
+         int embedded=0;
+         char prev=0;
+         if (command[i]=='\'' || command[i]=='"'){
             if (embedded==1){
                 if (command[i]!=prev){
                     text[pos]=command[i];
@@ -287,12 +287,12 @@ int main(int argc, char *argv[]) {
                 embedded=1;
                 prev=command[i];
             }
-        }else if (command[i]==' '){
+         }else if (command[i]==' '){
             if (embedded==1){
                 text[pos]=command[i];
                 pos++;
             }
-        }else if (command[i]=='\\'){
+         }else if (command[i]=='\\'){
             if (command[i+1]=='\\' || command[i+1]=='"'){
                 i++;
                 text[pos]=command[i];
@@ -301,11 +301,11 @@ int main(int argc, char *argv[]) {
                 text[pos]=command[i];
                 pos++;
             }
-        }else {
+         }else {
             text[pos]=command[i];
             pos++;
-        }
-        i++;
+         }
+         i++;
       }
 
      }else{
@@ -334,8 +334,9 @@ int main(int argc, char *argv[]) {
         FILE *errorlog=fopen("error.txt","r");
         FILE *errornote=fopen(text,"w");
         while (!feof(errorlog)){
-            fgets(line,length,errorlog); 
-            fprintf(errornote,"%s",line);
+            fgets(line,length,errorlog);
+
+            if (line[0]!='/') fprintf(errornote,"%s",line);
         }
         fclose(errorlog);
         fclose(errornote);
@@ -397,11 +398,11 @@ int main(int argc, char *argv[]) {
 
            directory=opendir(buffer);
            if (directory==NULL){
-            fprintf(stderr,"%s Directory not found.\n",text);
+            printf("%s Directory not found.\n",text);
            }else{
              while ((entry=readdir(directory))!=NULL){
             if (strcmp(entry->d_name,text)==0){
-              char myPath[100];
+              char myPath[1000];
               sprintf(myPath,"%s/%s",buffer,entry->d_name);
               if (access(myPath,X_OK)==0){
               printf("%s is %s\n",text,myPath);
@@ -427,14 +428,15 @@ int main(int argc, char *argv[]) {
        pos+=1;
           
       }
-      if (isCommand==false) printf("not found:%s\n",text);
+      if (isCommand==false) printf("%s: not found\n",text);
       }      
    }
   }else{
+        
         list *wordList=newList();
         int inSingle=0;
-        int pos=0;
-        int print=0;
+        int readPos=0;
+        int writePos=0;
 
         char wordbuffer[100];
         bool toDirect=false;
@@ -442,96 +444,90 @@ int main(int argc, char *argv[]) {
 
         
 
-        while (command[pos]!='\0'){ //Breaks the text into words and appends them into a list.
-          if (command[pos]==' '){
-            wordbuffer[print]='\0';
-            char *wordpointer=malloc(sizeof(wordbuffer));
+        while (command[readPos]!='\0'){ //Breaks the text into words and appends them into a list.
+          if (command[readPos]==' '){    
+            wordbuffer[writePos]='\0';
+            char *newWord=malloc(sizeof(wordbuffer));
             if (strcmp(wordbuffer,"")!=0){
-                  strcpy(wordpointer,wordbuffer);
-                  append(wordList,wordpointer);
-
-
+                  strcpy(newWord,wordbuffer);
+                  append(wordList,newWord);
             }
-            print=0;
-            pos++;
-          }else if (command[pos]=='\\') {
-            pos++;
-            wordbuffer[print]=command[pos];
-            pos++;
-            print++;
-          }else if (command[pos]=='\''){
-            pos++; //Shift to the next position.
-            while (command[pos]!='\''){
-              wordbuffer[print]=command[pos];
-              pos++;
-              print++;
+            writePos=0;
+          }else if (command[readPos]=='\\') {
+            readPos++;
+            wordbuffer[writePos]=command[readPos];
+            writePos++;
+          }else if (command[readPos]=='\''){
+            readPos++; //Shift to the next position.
+            while (command[readPos]!='\''){
+              wordbuffer[writePos]=command[readPos];
+              readPos++;
+              writePos++;
             }
-            wordbuffer[print]='\0';
+            wordbuffer[writePos]='\0';
 
-            char *wordpointer=malloc(sizeof(wordbuffer));
+            char *newWord=malloc(sizeof(wordbuffer));
             if (strcmp(wordbuffer,"")!=0){
-                  strcpy(wordpointer,wordbuffer);
-                  append(wordList,wordpointer);
+                  strcpy(newWord,wordbuffer);
+                  append(wordList,newWord);
             }
-            print=0;
-            pos++;
-          }else if (command[pos]=='"') {
-            pos++; //Shift to the next position.
-            while (command[pos]!='"'){
-            if (command[pos]=='\''){
+            writePos=0;
+          }else if (command[readPos]=='"') {
+            readPos++; //Shift to the next position.
+            while (command[readPos]!='"'){
+            if (command[readPos]=='\''){
               if (inSingle==0) inSingle=1;
               else inSingle=0;
             }
 
-            if (command[pos]=='\\') {
-             if (command[pos+1]=='"' || command[pos+1]=='\\'){
-              pos++;
+            if (command[readPos]=='\\') {
+             if (command[readPos+1]=='"' || command[readPos+1]=='\\'){
+              readPos++;
              }
              }
-            wordbuffer[print]=command[pos];
-            pos++;
-            print++;
+            wordbuffer[writePos]=command[readPos];
+            readPos++;
+            writePos++;
 
             }
-            wordbuffer[print]='\0';
+            wordbuffer[writePos]='\0';
 
-            char *wordpointer=malloc(sizeof(wordbuffer));
+            char *newWord=malloc(sizeof(wordbuffer));
             if (strcmp(wordbuffer,"")!=0){
-                  strcpy(wordpointer,wordbuffer);
-                  append(wordList,wordpointer);
+                  strcpy(newWord,wordbuffer);
+                  append(wordList,newWord);
             }
-            print=0;
-            pos++;
-          }else if (command[pos]=='>' || (command[pos]=='1' && command[pos+1]=='>')){
+            writePos=0;
+          }else if (command[readPos]=='>' || (command[readPos]=='1' && command[readPos+1]=='>')){
             //This splits the command if no spaces were implemented.
-            if (command[pos-1]!=' '){
-              wordbuffer[print]='\0';
-              char *wordpointer=malloc(sizeof(wordbuffer));
-              strcpy(wordpointer,wordbuffer);
-              append(wordList,wordpointer);
+            if (command[readPos-1]!=' '){
+              wordbuffer[writePos]='\0';
+              char *newWord=malloc(sizeof(wordbuffer));
+              strcpy(newWord,wordbuffer);
+              append(wordList,newWord);
             }
             toDirect=true;
             //Directs pos to the appropriate place. And resets print for writing file to direct error.
-            if (command[pos]=='>') pos++;
-            else pos+=2;
-            print=0;
+            if (command[readPos]=='>') readPos++;
+            else readPos+=2;
+            writePos=0;
 
             //File processing.
             int embedded=0;
             char prev='\0';
-            while (command[pos]!='\0'){
-              if (command[pos]==' '){
+            while (command[readPos]!='\0'){
+              if (command[readPos]==' '){
                 if (embedded==1){
-                    wordbuffer[print]=command[pos];
-                    print++;
+                    wordbuffer[writePos]=command[readPos];
+                    writePos++;
 
                 } 
               }
-              else if (command[pos]=='\'' || command[pos]=='"'){
+              else if (command[readPos]=='\'' || command[readPos]=='"'){
                 if (embedded==1){
-                     if (command[pos]!=prev){
-                     wordbuffer[print]=command[pos];
-                     print++;
+                     if (command[readPos]!=prev){
+                     wordbuffer[writePos]=command[readPos];
+                     writePos++;
                      }else{
                         embedded=0;
                      }
@@ -539,96 +535,94 @@ int main(int argc, char *argv[]) {
                 } 
                 else{
                     embedded=1;
-                    prev=command[pos];
+                    prev=command[readPos];
                 } 
 
 
-              }else if (command[pos]=='\\'){
-                if (command[pos+1]=='"' || command[pos+1]=='\\'){
-                    pos++;
-                    wordbuffer[print]=command[pos];
-                    print++;
+              }else if (command[readPos]=='\\'){
+                if (command[readPos+1]=='"' || command[readPos+1]=='\\'){
+                    readPos++;
+                    wordbuffer[writePos]=command[readPos];
+                    writePos++;
                 }
               }else{
-              wordbuffer[print]=command[pos];
-              print++;
+              wordbuffer[writePos]=command[readPos];
+              writePos++;
               }
-            pos++;
+            readPos++;
             }
-            command[pos]='\0'; //Finds the name of the file.
+            wordbuffer[writePos]='\0'; //Finds the name of the file.
 
-
-          }else if (command[pos]=='2' && command[pos+1]=='>'){
+          }else if (command[readPos]=='2' && command[readPos+1]=='>'){
             errorDirect=true;
 
-            if (command[pos-1]!=' '){
-              wordbuffer[print]='\0';
-              char *wordpointer=malloc(sizeof(wordbuffer));
-              strcpy(wordpointer,wordbuffer);
-              append(wordList,wordpointer);
+            if (command[readPos-1]!=' '){
+              wordbuffer[writePos]='\0';
+              char *newWord=malloc(sizeof(wordbuffer));
+              strcpy(newWord,wordbuffer);
+              append(wordList,newWord);
             }
-            pos+=2;
-            print=0;
+            readPos+=2;
+            writePos=0;
 
 
             int embedded=0;
             char prev='\0';
-            while (command[pos]!='\0'){
-              if (command[pos]==' '){
+            while (command[readPos]!='\0'){
+              if (command[readPos]==' '){
                 if (embedded==1){
-                    wordbuffer[print]=command[pos];
-                    print++;
+                    wordbuffer[writePos]=command[readPos];
+                    writePos++;
 
                 } 
               }
-              else if (command[pos]=='\'' || command[pos]=='"'){
+              else if (command[readPos]=='\'' || command[readPos]=='"'){
                 if (embedded==1){
-                     if (command[pos]!=prev){
-                     wordbuffer[print]=command[pos];
-                     print++;
+                     if (command[readPos]!=prev){
+                     wordbuffer[writePos]=command[readPos];
+                     writePos++;
                      }else{
                         embedded=0;
                      }   
                 } 
                 else{
                     embedded=1;
-                    prev=command[pos];
+                    prev=command[readPos];
                 } 
-              }else if (command[pos]=='\\'){
-                if (command[pos+1]=='"' || command[pos+1]=='\\'){
-                    pos++;
-                    wordbuffer[print]=command[pos];
-                    print++;
+              }else if (command[readPos]=='\\'){
+                if (command[readPos+1]=='"' || command[readPos+1]=='\\'){
+                    readPos++;
+                    wordbuffer[writePos]=command[readPos];
+                    writePos++;
                 }
               }else{
-              wordbuffer[print]=command[pos];
-              print++;
+              wordbuffer[writePos]=command[readPos];
+              writePos++;
               }
-            pos++;
+            readPos++;
             }
-            command[pos]='\0'; //Finds the name of the file.
+            wordbuffer[writePos]='\0'; //Finds the name of the file.
           }else{
-            wordbuffer[print]=command[pos];
-            pos++;
-            print++;
+            wordbuffer[writePos]=command[readPos];
+            writePos++;
           }
-
+          readPos++;
         }
-        if (command[pos]=='\0' && print>0){
-         wordbuffer[print]='\0';
-         char *wordpointer=malloc(sizeof(wordbuffer));
-         strcpy(wordpointer,wordbuffer);
+        if (command[readPos]=='\0' && writePos>0){
+         wordbuffer[writePos]='\0';
+         char *newWord=malloc(sizeof(wordbuffer));
+         strcpy(newWord,wordbuffer);
          if (toDirect==false && errorDirect==false){
-         append(wordList,wordpointer);
+         append(wordList,newWord);
          }
         }
         
       bool isCommand=false;
       char buffer[100];
 
-      char *path=getenv("PATH");  //Gets the path specified.      
-      if (path==NULL){            //If no path is present.
-        fprintf(stderr,"command not found:%s\n",text);
+      char *path=getenv("PATH");        
+      if (path==NULL){            
+        printf("%s: command not found\n",text);
       }else{
        int a=0;
        int pos=0;
@@ -642,19 +636,19 @@ int main(int argc, char *argv[]) {
            directory=opendir(buffer);
            
            if (directory==NULL){
-            fprintf(stderr,"Directory not found:%s\n",buffer);
+            printf("Directory not found:%s\n",buffer);
            }else{
              while ((entry=readdir(directory))!=NULL){
               append(wordList,NULL);
               if (strcmp(entry->d_name,wordList->array[0])==0){
               isCommand=true;           
-              char myPath[100];
+              char myPath[1000];
 
               sprintf(myPath,"%s/%s",buffer,entry->d_name);
               if (access(myPath,X_OK)==0){
                int pipefd[2];
                if (pipe(pipefd)<0){
-                fprintf(stderr,"Piping error.");
+                printf("Piping error.");
                }
                word *bufferword=newWord();              
                strcpy(buffer,"");
@@ -663,7 +657,7 @@ int main(int argc, char *argv[]) {
                if (p<0){
                  close(pipefd[0]);
                  close(pipefd[1]);
-                 fprintf(stderr,"Runtime error in OS system.\n");
+                 printf("Runtime error in OS system.\n");
                } else if (p==0){  //Child process.
                 close(pipefd[0]); 
                 if (errorDirect==true){
@@ -674,24 +668,25 @@ int main(int argc, char *argv[]) {
                 close(pipefd[1]);
                 execv(myPath,wordList->array);
                 perror("Program executable is broken.\n");
+                perror("exec failed.\n");
                 exit(67);
               }else{ //Parent process.
                 close(pipefd[1]);    //Doesn't need to write input.
                 word *w=newWord();
-                waitpid(p,NULL,0);
+                memset(buffer,0,sizeof(buffer));
                 ssize_t n=read(pipefd[0],buffer,sizeof(buffer)-1);
                 buffer[n]='\0';
                 wordread(w,buffer);
                 n=read(pipefd[0],buffer,sizeof(buffer)-1);
-                while (n!=0){ 
+                while (n>0){ 
                   buffer[n]='\0';
                   wordappend(w,buffer);
                   n=read(pipefd[0],buffer,sizeof(buffer)-1);
                 }
+                waitpid(p,NULL,0);
                 close(pipefd[0]);
 
 
-                
                 if (toDirect==false  && errorDirect==false){
                   if (w->letters[w->length-1]=='\n'){
                     printf("%s",w->letters);
