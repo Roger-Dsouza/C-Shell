@@ -153,7 +153,8 @@ int main(int argc, char *argv[]) {
      FILE *temp=fopen("temp.txt","w");                      
      bool toFile=false;                                     
      bool errorDirect=false;
-     bool fileAppend=false;                                
+     bool fileAppend=false;
+     bool errorAppend=false;                                
      list *wordList=newList();                              
      int pos=0;                                             
      int i=5;                                               
@@ -280,11 +281,17 @@ int main(int argc, char *argv[]) {
      }else if (command[i]=='2' && command[i+1]=='>'){
         freopen("error.txt","w",stderr);
         setvbuf(stderr,NULL,_IONBF,0);
-        errorDirect=true;
         text[pos]='\0';
         fprintf(temp,"%s",text); //Dumps last value.
         
-        i+=2;
+        if (command[i+2]=='>'){
+          i+=3;
+          errorAppend=true;
+        } 
+        else {
+          i+=2;
+          errorDirect=true;
+        } 
         pos=0;
 
         while (i<strlen(command)){
@@ -328,7 +335,7 @@ int main(int argc, char *argv[]) {
     i++;     
     }
     text[pos]='\0';
-    if (toFile==false && errorDirect==false && fileAppend==false){
+    if (toFile==false && errorDirect==false && fileAppend==false && errorAppend==false){
      fprintf(temp,"%s\n",text);
     }
     fclose(temp);
@@ -349,9 +356,11 @@ int main(int argc, char *argv[]) {
         else fprintf(theFile,"%s\n",line);    
       }
       fclose(theFile);
-    }else if (errorDirect==true) {
+    }else if (errorDirect==true || errorAppend==true) {
         FILE *errorlog=fopen("error.txt","r");
-        FILE *errornote=fopen(text,"w");
+        FILE *errornote;
+        if (errorDirect==true) errornote=fopen(text,"w");
+        else errornote=fopen(text,"a");
         while (!feof(errorlog)){
             fgets(line,length,errorlog);
             if (line[0]!='/') fprintf(errornote,"%s",line);
@@ -460,6 +469,7 @@ int main(int argc, char *argv[]) {
         bool toDirect=false;
         bool errorDirect=false;
         bool fileAppend=false;
+        bool errorAppend=false;
 
         
 
@@ -597,7 +607,13 @@ int main(int argc, char *argv[]) {
               strcpy(newWord,wordbuffer);
               append(wordList,newWord);
             }
-            readPos+=2;
+            if (command[readPos+2]=='>'){
+              readPos+=3;
+              errorAppend=true;
+            }else{
+              readPos+=2;
+              errorDirect=true;
+            }
             writePos=0;
 
 
@@ -718,7 +734,7 @@ int main(int argc, char *argv[]) {
                 waitpid(p,NULL,0);
                 close(pipefd[0]);
         
-                if (toDirect==false  && errorDirect==false && fileAppend==false){
+                if (toDirect==false  && errorDirect==false && fileAppend==false && errorAppend==false){
                   if (w->length>0){                    
                    if (w->letters[w->length-1]=='\n'){
                     printf("%s",w->letters);
@@ -741,14 +757,14 @@ int main(int argc, char *argv[]) {
 
                   fclose(skimmer);
                   }
-                  if (fileAppend==true){
+                  if (fileAppend==true || errorAppend==true){
                     final=fopen(wordbuffer,"a");
                   }else{
                     final=fopen(wordbuffer,"w");
                   }
-                  
+
                   if (strlen(finalString)>0){
-                    if (finalString[strlen(finalString)-2]!='\n'){
+                    if (finalString[strlen(finalString)-1]!='\n'){
                       fprintf(final,"\n");
                     }
                   }
