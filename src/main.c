@@ -87,7 +87,9 @@ char *get(list *l,int i){
 
 }
 void append(list *l,char *word){
-  if ((l->length)>=l->capacity) expand(l);
+  if ((l->length)>=l->capacity){
+    while ((l->length)>=l->capacity) expand(l);
+  } 
   l->array[(l->length)]=word;
   l->length+=1;
 
@@ -128,7 +130,7 @@ int main(int argc, char *argv[]) {
    }
    four_word[4]='\0';
   
-   char text[strlen(command)];                                                             
+   char text[strlen(command)+10];                                                             
    
    if (strcmp(two_word,"cd")==0){
     for (int i=3;i<strlen(command);i++){
@@ -150,7 +152,8 @@ int main(int argc, char *argv[]) {
    if (strcmp(four_word,"echo")==0 && command[4]==' '){     
      FILE *temp=fopen("temp.txt","w");                      
      bool toFile=false;                                     
-     bool errorDirect=false;                                
+     bool errorDirect=false;
+     bool fileAppend=false;                                
      list *wordList=newList();                              
      int pos=0;                                             
      int i=5;                                               
@@ -161,20 +164,18 @@ int main(int argc, char *argv[]) {
         text[pos]=command[i];
         pos++;
        }
-     }else if (command[i]=='\\') {                          
+      }else if (command[i]=='\\') {                          
             i++;
             text[pos]=command[i];
             pos++;
-          }else if (command[i]=='\'') {
+      }else if (command[i]=='\'') {
         //Two Cases- Either the next character is a quote or there is a list of chars till next quote.
         text[pos]='\0';
         fprintf(temp,"%s",text);
         strcpy(text,"");
         i++;
-
         if (command[i]=='\''){
           pos=0;
-
         } 
         else{
           pos=0;
@@ -221,15 +222,27 @@ int main(int argc, char *argv[]) {
         }
 
      }else if (command[i]=='>'|| (command[i]=='1' && command[i+1]=='>')){
-      toFile=true;
+      if (command[i]=='>'){
+        if (command[i+1]=='>'){
+          fileAppend=true;
+          i+=2;
+        }else{
+          toFile=true;
+          i+=1;
+        } 
+      }else if (command[i]=='1'){
+        if (command[i+2]=='>'){
+          fileAppend=true;
+          i+=3;
+        }else{
+          toFile=true;
+          i+=2;
+        } 
+      }
       text[pos]='\0';
       fprintf(temp,"%s",text); //Dumps last value.
       
-      if (command[i]=='>') i++;
-      else i+=2;
-      while (command[i]==' '){ //Skips spaces.
-        i++;
-      }
+
       pos=0;
       while (i<strlen(command)){
         int embedded=0;
@@ -264,7 +277,7 @@ int main(int argc, char *argv[]) {
         }
         i++;
       }
-     }else if (command[i]=='2' && command[i+1]=='>') {
+     }else if (command[i]=='2' && command[i+1]=='>'){
         freopen("error.txt","w",stderr);
         setvbuf(stderr,NULL,_IONBF,0);
         errorDirect=true;
@@ -301,33 +314,39 @@ int main(int argc, char *argv[]) {
                 text[pos]=command[i];
                 pos++;
             }
-         }else {
-            text[pos]=command[i];
-            pos++;
+         }else{
+              text[pos]=command[i];
+              pos++; 
          }
-         i++;
-      }
-
+         i++; 
+        }
      }else{
-      text[pos]=command[i];
-      pos++; 
-     }
-    i++;  
+          text[pos]=command[i];
+          pos++; 
+
+        }
+    i++;     
     }
     text[pos]='\0';
-
-    if (toFile==false && errorDirect==false){
+    if (toFile==false && errorDirect==false && fileAppend==false){
      fprintf(temp,"%s\n",text);
     }
     fclose(temp);
     FILE *tempWrite=fopen("temp.txt","r");
     char line[200];
    
-    if (toFile==1){
-      FILE *theFile=fopen(text,"w");
+    if (toFile==1 || fileAppend==true){
+      FILE *theFile;
+      if (fileAppend==true){
+        theFile=fopen(text,"a");
+      } 
+      else {
+        theFile=fopen(text,"w");
+      }
       while (!feof(tempWrite)){
-        fgets(line,length,tempWrite); 
-        fprintf(theFile,"%s",line);    
+        fgets(line,length,tempWrite);
+        if (fileAppend==false) fprintf(theFile,"%s",line);
+        else fprintf(theFile,"%s\n",line);    
       }
       fclose(theFile);
     }else if (errorDirect==true) {
@@ -335,7 +354,6 @@ int main(int argc, char *argv[]) {
         FILE *errornote=fopen(text,"w");
         while (!feof(errorlog)){
             fgets(line,length,errorlog);
-
             if (line[0]!='/') fprintf(errornote,"%s",line);
         }
         fclose(errorlog);
@@ -398,7 +416,7 @@ int main(int argc, char *argv[]) {
 
            directory=opendir(buffer);
            if (directory==NULL){
-            printf("%s Directory not found.\n",text);
+            fprintf(stderr,"%s Directory not found.\n",text);
            }else{
              while ((entry=readdir(directory))!=NULL){
             if (strcmp(entry->d_name,text)==0){
@@ -441,6 +459,7 @@ int main(int argc, char *argv[]) {
         char wordbuffer[100];
         bool toDirect=false;
         bool errorDirect=false;
+        bool fileAppend=false;
 
         
 
@@ -508,9 +527,25 @@ int main(int argc, char *argv[]) {
             }
             toDirect=true;
             //Directs pos to the appropriate place. And resets print for writing file to direct error.
-            if (command[readPos]=='>') readPos++;
-            else readPos+=2;
             writePos=0;
+            if (command[readPos]=='>'){
+              if (command[readPos+1]=='>'){
+                fileAppend=true;
+                readPos+=2;
+              }else{
+                toDirect=true;
+                readPos++;
+              }
+            }else if (command[readPos]=='1'){
+              if (command[readPos+2]=='>'){
+                fileAppend=true;
+                readPos+=3;
+              }else{
+                toDirect=true;
+                readPos+=2;
+              }
+            }
+
 
             //File processing.
             int embedded=0;
@@ -636,7 +671,7 @@ int main(int argc, char *argv[]) {
            directory=opendir(buffer);
            
            if (directory==NULL){
-            printf("Directory not found:%s\n",buffer);
+            fprintf(stderr,"Directory not found:%s\n",buffer);
            }else{
              while ((entry=readdir(directory))!=NULL){
               append(wordList,NULL);
@@ -648,7 +683,7 @@ int main(int argc, char *argv[]) {
               if (access(myPath,X_OK)==0){
                int pipefd[2];
                if (pipe(pipefd)<0){
-                printf("Piping error.");
+                fprintf(stderr,"%s","Piping error.");
                }
                word *bufferword=newWord();              
                strcpy(buffer,"");
@@ -673,11 +708,8 @@ int main(int argc, char *argv[]) {
               }else{ //Parent process.
                 close(pipefd[1]);    //Doesn't need to write input.
                 word *w=newWord();
-                memset(buffer,0,sizeof(buffer));
-                ssize_t n=read(pipefd[0],buffer,sizeof(buffer)-1);
-                buffer[n]='\0';
                 wordread(w,buffer);
-                n=read(pipefd[0],buffer,sizeof(buffer)-1);
+                ssize_t n=read(pipefd[0],buffer,sizeof(buffer)-1);
                 while (n>0){ 
                   buffer[n]='\0';
                   wordappend(w,buffer);
@@ -685,19 +717,41 @@ int main(int argc, char *argv[]) {
                 }
                 waitpid(p,NULL,0);
                 close(pipefd[0]);
-
-
-                if (toDirect==false  && errorDirect==false){
-                  if (w->letters[w->length-1]=='\n'){
+        
+                if (toDirect==false  && errorDirect==false && fileAppend==false){
+                  if (w->length>0){                    
+                   if (w->letters[w->length-1]=='\n'){
                     printf("%s",w->letters);
-                  }else {
+                   }else {
                     printf("%s",w->letters);
                     printf("\n");
-                  } 
+                   } 
 
-                } 
-                else{
-                  FILE *final=fopen(wordbuffer,"w");
+                   }
+                }else{
+                  FILE *final;
+                  char finalString[100];
+                  finalString[0]='\0';
+                  FILE *skimmer;
+                  skimmer=fopen(wordbuffer,"r");
+                  if (skimmer!=NULL){
+                    while (!feof(skimmer)){
+                      fgets(finalString,100,skimmer);
+                    }
+
+                  fclose(skimmer);
+                  }
+                  if (fileAppend==true){
+                    final=fopen(wordbuffer,"a");
+                  }else{
+                    final=fopen(wordbuffer,"w");
+                  }
+                  
+                  if (strlen(finalString)>0){
+                    if (finalString[strlen(finalString)-2]!='\n'){
+                      fprintf(final,"\n");
+                    }
+                  }
                   fprintf(final,"%s",w->letters);
                   //Some error related to w->letters. Fix this.
                   fclose(final);
@@ -736,3 +790,5 @@ int main(int argc, char *argv[]) {
    }
     return 0; 
 }
+
+
