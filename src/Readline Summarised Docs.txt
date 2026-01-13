@@ -1,0 +1,19 @@
+GNU Readline
+A C library that allows for features such as completion, line editing 
+and history manipulation to be included in POSIX programs.
+
+Basic Behaviour.
+    char *readline(char *prompt);
+        -Prints a prompt and returns input user text.
+        -If EOF is encountered, and the line is empty, (char *NULL) is returned.
+        Else the line is ended.
+
+    add_history(line);
+        -Saves line away in a history list of lines.
+
+    int rl_bind_key(int key,int (*function)());
+        Takes a binding key and a function pointer for function to be executed.
+        
+
+
+ 

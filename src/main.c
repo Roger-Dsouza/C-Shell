@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include <dirent.h>
 #include <unistd.h>
+#include <readline/readline.h>
 
 //Program Specific Instructions.
 const int INITIAL_CAPACITY=200;
@@ -23,7 +24,7 @@ typedef struct word{
 
 }word;
 
-word *newWord(){
+word *newWord(void){
   word *w=malloc(sizeof(word));
   char *letters=malloc(INITIAL_CAPACITY*sizeof(char));
   letters[0]='\0';
@@ -64,7 +65,7 @@ typedef struct list{
   int capacity;
   array array; //Pointer to the list of strings.
 }list;
-list *newList(){
+list *newList(void){
   list *l=malloc(sizeof(list));
   array array=malloc(INITIAL_CAPACITY*sizeof(l->array));
   *l=(list){0,INITIAL_CAPACITY,array};
@@ -95,12 +96,27 @@ void append(list *l,char *word){
 
 }
 //***************************
+//Readline functions.
+char *simpleCompletion(const char *text,int state){    
+    char *returnText=malloc(5*sizeof(char));
+    
+    if (state==0){
+        if (strcmp("ech",text)==0){
+            strcpy(returnText,"echo");
+        }else if (strcmp("exi",text)==0){
+            strcpy(returnText,"exit");
+        }else return NULL;
+    }else return NULL;
+    return returnText;
+}
 
 
 
-
-
-int main(int argc, char *argv[]) {                                                         
+//*************************** */
+int main(int argc, char *argv[]) {    
+  char *(*entry)(const char *text,int state)=&simpleCompletion;
+  rl_completion_entry_function=entry;
+  rl_bind_key('\t',rl_complete);                                                     
   char *builtin[5]={"echo","exit","type","pwd","cd"};                                      
   while (1==1){                                                                            
    setbuf(stdout, NULL);                                                                   
@@ -111,11 +127,10 @@ int main(int argc, char *argv[]) {
    FILE *errorPurge=fopen("error.txt","w");
    fclose(errorPurge);
    //*******************                                                                  
-   printf("$ ");                                                                                                                                              
-   char command[100]; 
-   fgets(command,100,stdin);                                                                     
-   sscanf(command,"%[^\t\n]",command);                                                              
-   int length=strlen(command);                                                             
+   char *command=NULL;
+   command=readline("$ ");
+   int length=strlen(command);
+
    char four_word[5];                                                                      
    char two_word[3];                                                                       
 
@@ -125,10 +140,11 @@ int main(int argc, char *argv[]) {
    two_word[2]='\0';
 
    
-   for (int i=0;i<4;i++){                                                                  
+   for (int i=0;(i<4 && i<length);i++){                                                                  
    four_word[i]=command[i];
    }
-   four_word[4]='\0';
+   if (length>=4)four_word[4]='\0';
+   else four_word[length]='\0';
   
    char text[strlen(command)+10];                                                             
    
@@ -149,7 +165,7 @@ int main(int argc, char *argv[]) {
     strcpy(text,"");
     }else{
 
-   if (strcmp(four_word,"echo")==0 && command[4]==' '){     
+      if (strcmp(four_word,"echo")==0 && command[4]==' '){     
      FILE *temp=fopen("temp.txt","w");                      
      bool toFile=false;                                     
      bool errorDirect=false;
@@ -276,7 +292,7 @@ int main(int argc, char *argv[]) {
             text[pos]=command[i];
             pos++;
         }
-        i++;
+         i++;
       }
      }else if (command[i]=='2' && command[i+1]=='>'){
         freopen("error.txt","w",stderr);
@@ -379,14 +395,13 @@ int main(int argc, char *argv[]) {
             fgets(line,length,tempWrite);           
         }
     }
+    
     strcpy(line,"");
     strcpy(text,"");
     fclose(tempWrite);
     freeList(wordList);
-
-   
-
   }else if(strcmp("exit",command)==0){  //Leave shell command.
+    free(command);
     break;
   }else if (strcmp("pwd",command)==0){
     char currentDir[1024];
@@ -472,7 +487,7 @@ int main(int argc, char *argv[]) {
         bool errorAppend=false;
 
         
-
+        
         while (command[readPos]!='\0'){ //Breaks the text into words and appends them into a list.
           if (command[readPos]==' '){    
             wordbuffer[writePos]='\0';
@@ -480,7 +495,7 @@ int main(int argc, char *argv[]) {
             if (strcmp(wordbuffer,"")!=0){
                   strcpy(newWord,wordbuffer);
                   append(wordList,newWord);
-            }
+            }else free(newWord);
             writePos=0;
           }else if (command[readPos]=='\\') {
             readPos++;
@@ -499,7 +514,7 @@ int main(int argc, char *argv[]) {
             if (strcmp(wordbuffer,"")!=0){
                   strcpy(newWord,wordbuffer);
                   append(wordList,newWord);
-            }
+            }else free(newWord);
             writePos=0;
           }else if (command[readPos]=='"') {
             readPos++; //Shift to the next position.
@@ -525,7 +540,7 @@ int main(int argc, char *argv[]) {
             if (strcmp(wordbuffer,"")!=0){
                   strcpy(newWord,wordbuffer);
                   append(wordList,newWord);
-            }
+            }else free(newWord);
             writePos=0;
           }else if (command[readPos]=='>' || (command[readPos]=='1' && command[readPos+1]=='>')){
             //This splits the command if no spaces were implemented.
@@ -539,6 +554,7 @@ int main(int argc, char *argv[]) {
             //Directs pos to the appropriate place. And resets print for writing file to direct error.
             writePos=0;
             if (command[readPos]=='>'){
+              
               if (command[readPos+1]=='>'){
                 fileAppend=true;
                 readPos+=2;
@@ -561,6 +577,7 @@ int main(int argc, char *argv[]) {
             int embedded=0;
             char prev='\0';
             while (command[readPos]!='\0'){
+              
               if (command[readPos]==' '){
                 if (embedded==1){
                     wordbuffer[writePos]=command[readPos];
@@ -596,11 +613,8 @@ int main(int argc, char *argv[]) {
               }
             readPos++;
             }
-            wordbuffer[writePos]='\0'; //Finds the name of the file.
-
           }else if (command[readPos]=='2' && command[readPos+1]=='>'){
             errorDirect=true;
-
             if (command[readPos-1]!=' '){
               wordbuffer[writePos]='\0';
               char *newWord=malloc(sizeof(wordbuffer));
@@ -652,25 +666,26 @@ int main(int argc, char *argv[]) {
               }
             readPos++;
             }
-            wordbuffer[writePos]='\0'; //Finds the name of the file.
+            
           }else{
             wordbuffer[writePos]=command[readPos];
             writePos++;
           }
+          if (errorAppend==false && errorDirect==false && fileAppend==false && toDirect==false){
           readPos++;
+          }
         }
         if (command[readPos]=='\0' && writePos>0){
          wordbuffer[writePos]='\0';
          char *newWord=malloc(sizeof(wordbuffer));
          strcpy(newWord,wordbuffer);
-         if (toDirect==false && errorDirect==false){
+         if (toDirect==false && errorDirect==false && fileAppend==false && errorAppend==false){
          append(wordList,newWord);
-         }
+         }else free(newWord);
         }
         
       bool isCommand=false;
       char buffer[100];
-
       char *path=getenv("PATH");        
       if (path==NULL){            
         printf("%s: command not found\n",text);
@@ -798,13 +813,10 @@ int main(int argc, char *argv[]) {
         printf("%s: command not found\n",wordList->array[0]);
       } 
       }
-        freeList(wordList);
-      } 
-           
+      freeList(wordList);
+  }      
    }
-
+   free(command);
    }
     return 0; 
 }
-
-
