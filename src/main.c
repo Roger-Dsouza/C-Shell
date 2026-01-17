@@ -43,9 +43,13 @@ void wordexpand(word *w){
 }
 
 void wordread(word *w,char *insert){
-  if (w->capacity<=strlen(insert)) wordexpand(w);
+  if (w->capacity<=strlen(insert)){
+    while ((w->length+strlen(insert))>=w->capacity){
+         wordexpand(w);
+   }
+  }
   strcpy(w->letters,insert);
-  w->length=strlen(insert);
+  w->length+=strlen(insert);
 }
 
 void wordappend(word *w,char *append){
@@ -57,6 +61,33 @@ void wordappend(word *w,char *append){
   strcat(w->letters,append);
   w->length=w->length+strlen(append);
 }
+
+void type(word *w, char text){
+    if ((w->length+1)>=(w->capacity)){
+      while ((w->length+1)>=w->capacity){
+         wordexpand(w);
+      }
+    }
+    w->letters[w->length]=text;
+    w->length+=1;
+}
+
+void wordType(word *w,char text,int writePos){
+  if (writePos==(w->length)) type(w,text);
+  else if (writePos>=0 && writePos<w->length){
+    w->letters[writePos]=text;
+  }else perror("Out of bound string writing.\n");
+}
+
+void clear(word *w){
+  char *freshStart=malloc(sizeof(char)*(w->capacity));
+  free(w->letters);
+  w->length=0;
+  w->letters=freshStart;
+
+}
+
+
 
 
 //List module.
@@ -97,18 +128,75 @@ void append(list *l,char *word){
 }
 //***************************
 //Readline functions.
-char *simpleCompletion(const char *text,int state){    
-    char *returnText=malloc(5*sizeof(char));
+char *simpleCompletion(const char *text,int state){
+    char *textDuplicate=malloc(sizeof(char)*(strlen(text)+1));    
+    char *returnText=NULL;
+    char *path=getenv("PATH");                  //Variable to path.     
     
     if (state==0){
         if (strcmp("ech",text)==0){
+            returnText=malloc(5*sizeof(char));
             strcpy(returnText,"echo");
         }else if (strcmp("exi",text)==0){
+            returnText=malloc(5*sizeof(char));
             strcpy(returnText,"exit");
+        }else if (path!=NULL){
+          
+          word *onedirector=newWord();
+
+          int readPos=0;
+          int writePos=0;
+          while (readPos<strlen(path)){
+              if (path[readPos]==':' || path[readPos]=='\0'){
+                type(onedirector,'\0');
+                DIR *directory;
+                struct dirent *entry;
+                directory=opendir(onedirector->letters);
+                if (directory==NULL) return NULL;
+                else{
+                  while ((entry=readdir(directory))!=NULL){
+                    memcpy(textDuplicate,entry->d_name,strlen(text));
+                    textDuplicate[strlen(text)]='\0';
+                    if (strcmp(textDuplicate,text)==0){
+                      returnText=malloc(sizeof(char)*(1+strlen(entry->d_name)));
+                      strcpy(returnText,entry->d_name);
+                      return returnText;
+                    }
+                  }
+                }
+                clear(onedirector);
+                writePos=0;
+                
+                /* 
+                if (directory!=NULL){
+                 while ((entry=readdir(directory))!=NULL){
+                  memcpy(textDuplicate,entry,strlen(text));
+                  printf("Copied text:-%s\n",textDuplicate);
+                  if (strcmp(textDuplicate,text)==0){
+                    printf("Found.\n");
+                    return (char *)entry; 
+                  }else printf("Not a match: %s\n",textDuplicate);            
+                 }
+                }else printf("Not present directory: %s\n",onedirector->letters);
+                printf("Directory address size: %lu\n",strlen(onedirector->letters));
+                clear(onedirector);
+                writePos=0;
+              */
+              }else{
+                wordType(onedirector,path[readPos],writePos);
+                writePos++;
+              } 
+              
+            
+            readPos++;
+          }
+          
+        return NULL;
         }else return NULL;
     }else return NULL;
     return returnText;
 }
+
 
 
 
@@ -130,7 +218,6 @@ int main(int argc, char *argv[]) {
    char *command=NULL;
    command=readline("$ ");
    int length=strlen(command);
-
    char four_word[5];                                                                      
    char two_word[3];                                                                       
 
